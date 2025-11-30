@@ -1,22 +1,48 @@
-import * as fg from "fast-glob";
+import fg from "fast-glob";
 import * as path from "path";
 import * as fs from "fs";
 import { gitService } from "./git.service";
 import { query, queryOne } from "../utils/db-utils";
 import { astAnalyzer } from "./ast-analyzer.service";
 import { computeFileChecksum, computeProjectChecksum } from "../utils/hash-utils";
+import { vitestInstaller } from "./vitest-installer.service";
+import { testGenerator } from "./test-generator.service";
 
 export class ScanService {
     async startScan(projectId: number, gitUrl: string, branch: string) {
 
         // 1️⃣ Pull repo
         const repoPath = await gitService.cloneOrUpdate(projectId, gitUrl, branch);
+        await vitestInstaller.ensureVitest(repoPath);
 
         // 2️⃣ Collect all source files
-        const files = await fg(["**/*.js", "**/*.ts", "**/*.jsx", "**/*.tsx"], {
-            cwd: repoPath,
-            absolute: true
-        });
+        const files = await fg(
+            [
+                "src/**/*.js",
+                "src/**/*.jsx",
+                "src/**/*.ts",
+                "src/**/*.tsx",
+                "components/**/*.tsx",
+                "components/**/*.js"
+            ],
+            {
+                cwd: repoPath,
+                absolute: true,
+                ignore: [
+                    "**/node_modules/**",
+                    "**/dist/**",
+                    "**/build/**",
+                    "**/coverage/**",
+                    "**/.next/**",
+                    "**/.nuxt/**",
+                    "**/.vite/**",
+                    "**/public/**",
+                    "**/scripts/**",
+                    "**/storybook-static/**",
+                    "**/*.min.js"
+                ]
+            }
+        );
 
         // 3️⃣ Compute checksum for each file
         const fileChecksums: Record<string, string> = {};
@@ -36,6 +62,23 @@ export class ScanService {
         );
 
         if (previousScan) {
+
+            for (const file of files) {
+                const rel = path.relative(repoPath, file);
+                const ext = path.extname(rel).replace(".", "");
+                const language = ["js", "ts", "jsx", "tsx"].includes(ext) ? ext : "js";
+                const checksum = fileChecksums[file];
+                const existing = await queryOne(
+                    `SELECT file_id FROM file WHERE project_id=? AND path=? AND checksum=? LIMIT 1`,
+                    [projectId, rel, checksum]
+                );
+
+                let fileId = existing?.file_id;
+
+                const components = await astAnalyzer.analyzeAndSave(fileId, file);
+                await testGenerator.generateTestsForFile(repoPath, file, components.map(c => c.name));
+            }
+
             return {
                 scan_id: previousScan.scan_id,
                 skipped: true,
@@ -77,7 +120,14 @@ export class ScanService {
                 fileId = result.insertId;
 
                 // Analyze ONLY NEW OR CHANGED FILES
-                await astAnalyzer.analyzeAndSave(fileId, file);
+                const components = await astAnalyzer.analyzeAndSave(fileId, file);
+                console.log(components, file);
+                await testGenerator.generateTestsForFile(repoPath, file, components.map(c => c.name));
+            } else {
+                console.log("nbbbnbn")
+                const components = await astAnalyzer.analyzeAndSave(fileId, file);
+                console.log(components, file);
+                await testGenerator.generateTestsForFile(repoPath, file, components.map(c => c.name));
             }
         }
 
