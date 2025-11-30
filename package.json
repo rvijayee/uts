@@ -1,0 +1,49 @@
+{
+  "name": "testgen-backend",
+  "version": "1.0.0",
+  "description": "Automated Frontend Unit Test Generator backend for React + Vitest",
+  "main": "dist/src/api/index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/api/index.ts",
+    "build": "tsc",
+    "start": "node dist/src/api/index.js",
+    "test": "vitest --run",
+    "lint": "eslint . --ext .ts"
+  },
+  "dependencies": {
+    "@babel/core": "^7.25.0",
+    "@babel/parser": "^7.25.0",
+    "@babel/traverse": "^7.25.0",
+    "@babel/types": "^7.25.0",
+    "@prisma/client": "^6.0.0",
+    "adm-zip": "^0.5.10",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "execa": "^8.0.1",
+    "express": "^4.18.2",
+    "fast-glob": "^3.3.2",
+    "fs-extra": "^11.2.0",
+    "helmet": "^7.0.0",
+    "js-yaml": "^4.1.0",
+    "morgan": "^1.10.0",
+    "mysql2": "^3.15.3",
+    "node-fetch": "^3.3.2",
+    "prisma": "^6.0.0",
+    "simple-git": "^3.19.1",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0",
+    "zod": "^3.23.5"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.12.8",
+    "@typescript-eslint/eslint-plugin": "^7.0.2",
+    "@typescript-eslint/parser": "^7.0.2",
+    "@vitest/coverage-v8": "^1.5.0",
+    "eslint": "^9.0.0",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.5.3",
+    "vitest": "^1.5.0"
+  }
+}
